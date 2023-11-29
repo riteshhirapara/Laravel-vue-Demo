@@ -14,4 +14,5 @@ Route::group(['prefix' => 'books', 'middleware' => 'auth:sanctum'], function () 
     Route::get('edit/{id}', [BookController::class, 'edit']);
     Route::post('update/{id}', [BookController::class, 'update']);
     Route::delete('delete/{id}', [BookController::class, 'delete']);
+    Route::get('search', [BookController::class, 'search']);
 });

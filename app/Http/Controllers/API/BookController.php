@@ -70,4 +70,21 @@ class BookController extends Controller
 
         return response()->json('The book successfully deleted');
     }
+
+    public function search(Request $request)
+    {
+        $search = $request->input('skeyword', '');
+        $books = Book::query();
+        $books->when($search, function ($query) use ($search) {
+            $query->where('title', 'like', "%$search%")
+                ->orWhere('author', 'like', "%$search%")
+                ->orWhere('isbn', 'like', "%$search%")
+                ->orWhere('published', 'like', "%$search%")
+                ->orWhere('publisher', 'like', "%$search%")
+                ->orWhere('genre', 'like', "%$search%");
+        });
+        $results['data'] = $books ->get();
+    
+        return response()->json($results);
+    }
 }

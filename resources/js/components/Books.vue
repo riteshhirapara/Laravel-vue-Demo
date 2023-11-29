@@ -1,9 +1,10 @@
 <template>
-    <div>
+    <div v-if="is_admin == 1">
         <h4 class="text-center">All Books</h4><br />
         <form name="fsearch" id="fsearch" class="search-form" method="get" style="padding-bottom: 10px;">
             <div style="display: flex;justify-content: space-between;">
-                <button type="button" class="btn btn-info" @click="this.$router.push('/books/add')">Add Book</button>
+                <button type="button" class="btn btn-info" @click="this.$router.push('/books/add')" v-if="is_admin == 1">Add
+                    Book</button>
                 <div>
                     <input type="text" name="skeyword" v-model="skeyword" placeholder="Search" autocomplete="off">
                     <button class="normal-btn dark-btn" type="button" @click="search"><i class="fas fa-search"></i>
@@ -22,7 +23,7 @@
                     <th>ISBN</th>
                     <th>Published</th>
                     <th>Publisher</th>
-                    <th>Actions</th>
+                    <th v-if="is_admin == 1">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,7 +35,7 @@
                     <td>{{ book.isbn }}</td>
                     <td>{{ book.published }}</td>
                     <td>{{ book.publisher }}</td>
-                    <td>
+                    <td v-if="is_admin == 1">
                         <div class="btn-group" role="group">
                             <router-link :to="{ name: 'editbook', params: { id: book.id } }" class="btn btn-primary">Edit
                             </router-link>
@@ -46,6 +47,64 @@
         </table>
         <pagination :currentPage="page" :totalRecords="totalRecords" :perPage="listnum" @pageChange="handlePageChange" />
 
+    </div>
+    <div v-if="is_admin == 0">
+        <div style="width: 100%; display: inline-block !important">
+            <div class="np-title">Search book by title</div>
+            <div style="width: 100%">
+                <div class="auto-search-container">
+                    <input type="text" class="np-input-search" v-model="inputSearchText" placeholder="Search books"
+                        autocomplete="off" v-on:keyup="searchNames" />
+                </div>
+            </div>
+            <div class="np-result-container">
+                <div v-if="filteredResult.length > 0">
+                    <div v-for="(result, resultIndex) in filteredResult" :key="resultIndex">
+                        <div class="np-result-item" @click="showCharacterDetails(result)">
+                            <div class="np-ib" style="width: 50px">
+                                <img src="images/book-image.png" class="np-avatar" />
+                            </div>
+                            <div class="np-ib np-text-container">
+                                <div>
+                                    <b>{{ result.title }}</b>
+                                </div>
+                                <div class="np-result-description">
+                                    <span>Author:</span>{{ result.author }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="np-details" style="width: 100%; display: inline-block !important" v-if="characterDetails != null">
+            <div v-if="characterDetails != null">
+                <div>
+                    <img src="images/book-image.png" class="np-result-details-img" />
+                </div>
+                <div class="np-result-details-title">
+                    <b style="font-size: 20px;">{{ characterDetails.title }}</b>
+                </div>
+                <div class="np-result-details-title">
+                    {{ characterDetails.author }}
+                </div>
+                <div class="np-result-details-title">
+                    {{ characterDetails.isbn }}
+                </div>
+                <div class="np-result-details-title">
+                    {{ characterDetails.gener }}
+                </div>
+                <div class="np-result-details-title">
+                    {{ characterDetails.published }}
+                </div>
+                <div class="np-result-details-title">
+                    {{ characterDetails.publisher }}
+                </div>
+                <div class="np-result-details-description">
+                    {{ characterDetails.description }}
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -62,9 +121,22 @@ export default {
             page: 1,
             listnum: 10,
             skeyword: '',
+            is_admin: '',
+            inputSearchText: "",
+            filteredResult: [],
+            characterDetails: null,
         }
     },
     created() {
+        if (typeof localStorage !== 'undefined') {
+            const user = localStorage.getItem('user');
+            if (user) {
+                const parsedData = JSON.parse(user);
+                // Now, `parsedData` contains your data items
+                this.is_admin = parsedData.is_admin;
+            }
+        }
+
         this.fetch();
 
     },
@@ -101,6 +173,31 @@ export default {
 
         search() {
             this.fetch();
+        },
+
+        searchNames() {
+            this.filteredResult = [];
+            this.characterDetails = null;
+            if (
+                this.inputSearchText == null ||
+                (this.inputSearchText != null && this.inputSearchText.length === 0)
+            ) {
+                this.filteredResult = [];
+                this.characterDetails = null;
+            } else {
+                this.$axios.get('/sanctum/csrf-cookie').then(response => {
+                this.$axios.get(`/api/books/search?skeyword=${this.inputSearchText}`)
+                    .then(response => {
+                        this.filteredResult = response.data.data;
+                    })
+                    .catch(function (error) {
+                        console.error(error);
+                    });
+                })
+            }
+        },
+        showCharacterDetails(result) {
+            this.characterDetails = result;
         },
     },
     beforeRouteEnter(to, from, next) {

@@ -63,6 +63,7 @@ export default {
                     .then(response => {
                         console.log(response.data)
                         if (response.data.success) {
+                            localStorage.setItem("user", JSON.stringify(response.data.data));
                             this.$router.go('/dashboard')
                         } else {
                             this.error = response.data.message
